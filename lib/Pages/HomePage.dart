@@ -6,8 +6,13 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Obtener el ancho y alto de la pantalla
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: Container(
+        height: screenHeight,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -27,14 +32,14 @@ class HomePage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(50),
                     child: Image.asset(
                       'assets/logo.png',
-                      height: 100,
-                      width: 100,
+                      height: screenWidth * 0.25, // El tamaño del logo depende del ancho de la pantalla
+                      width: screenWidth * 0.25,
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Información
                 Card(
                   elevation: 10,
@@ -46,13 +51,15 @@ class HomePage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Universidad Politécnica de Chiapas',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: const Color.fromARGB(221, 58, 58, 58),
-                              ),
-                          textAlign: TextAlign.center,
+                        Center(
+                          child: Text(
+                            'Universidad Politécnica de Chiapas',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color.fromARGB(221, 58, 58, 58),
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                         const Divider(height: 30, thickness: 1),
                         _buildInfoText('Ingeniería en Desarrollo de Software'),
@@ -67,7 +74,7 @@ class HomePage extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // Botones de acción reorganizados
+                // Botones de acción
                 Center(
                   child: Column(
                     children: [
@@ -77,8 +84,11 @@ class HomePage extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color.fromARGB(255, 3, 6, 86),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                          textStyle: const TextStyle(fontSize: 18),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.1, // Tamaño adaptativo para los botones
+                            vertical: 15,
+                          ),
+                          textStyle: TextStyle(fontSize: screenWidth * 0.045),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
@@ -93,8 +103,8 @@ class HomePage extends StatelessWidget {
                         label: const Text('GitHub'),
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.blueAccent,
-                          textStyle: const TextStyle(
-                            fontSize: 16,
+                          textStyle: TextStyle(
+                            fontSize: screenWidth * 0.04,
                             decoration: TextDecoration.underline,
                           ),
                         ),

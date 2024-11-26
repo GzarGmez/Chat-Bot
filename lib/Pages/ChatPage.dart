@@ -14,10 +14,10 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final List<Map<String, String>> _messages = [];
   final TextEditingController _controller = TextEditingController();
-  bool _isConnected = true; // Control de conexión
-  final String apiKey = 'AIzaSyB0wZHN5PiorXWoBw8VAt1982R3oEzdhXE';
-  final String apiUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+  bool _isConnected = true; // Control de conectividad
+  bool _isWifiEnabled = true; // Control del estado del WiFi
+  final String apiKey = 'AIzaSyDNE1Elvhyh9gCtEtC-hgui1x7PGipsovs';
+  final String apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
 
   @override
   void initState() {
@@ -34,11 +34,12 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
-  // Verificar conectividad
+  // Verificar conectividad y estado del WiFi
   Future<void> _checkConnectivity() async {
     final connectivityResult = await Connectivity().checkConnectivity();
     setState(() {
       _isConnected = connectivityResult != ConnectivityResult.none;
+      _isWifiEnabled = connectivityResult == ConnectivityResult.wifi;
     });
   }
 
@@ -47,6 +48,7 @@ class _ChatPageState extends State<ChatPage> {
     Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
       setState(() {
         _isConnected = result != ConnectivityResult.none;
+        _isWifiEnabled = result == ConnectivityResult.wifi;
       });
     });
   }
@@ -56,7 +58,7 @@ class _ChatPageState extends State<ChatPage> {
     final prefs = await SharedPreferences.getInstance();
     final savedMessages = prefs.getStringList('chat_history') ?? [];
     setState(() {
-      _messages.clear(); // Limpiar mensajes existentes antes de cargar
+      _messages.clear();
       _messages.addAll(
         savedMessages.map((msg) => Map<String, String>.from(jsonDecode(msg))).toList(),
       );
@@ -92,17 +94,14 @@ class _ChatPageState extends State<ChatPage> {
         final data = jsonDecode(response.body);
         return data['candidates']?[0]['content']?['parts']?[0]['text'] ?? 'Sin respuesta.';
       } else {
-        print('Error: ${response.statusCode}');
-        print('Body: ${response.body}');
         return 'Error en la respuesta del servidor.';
       }
     } catch (e) {
-      print('Error en la llamada a la API: $e');
       return 'Error de conexión.';
     }
   }
 
-  // Enviar mensaje y actualizar historial
+  // Enviar mensaje
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
@@ -123,8 +122,8 @@ class _ChatPageState extends State<ChatPage> {
         _messages.add({'sender': 'bot', 'text': 'No hay conexión a internet. Por favor, intenta más tarde.'});
       });
     }
-    
-    await _saveChatHistory(); // Guardar el historial después de cada mensaje
+
+    await _saveChatHistory();
   }
 
   @override
@@ -186,14 +185,18 @@ class _ChatPageState extends State<ChatPage> {
                 hintText: 'Escribe un mensaje...',
                 border: OutlineInputBorder(),
               ),
-              onSubmitted: _isConnected ? (value) => _sendMessage(value) : null,
+              onSubmitted: (_isConnected && _isWifiEnabled)
+                  ? (value) => _sendMessage(value)
+                  : null,
             ),
           ),
           const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.send),
-            color: _isConnected ? const Color.fromARGB(255, 15, 226, 226) : Colors.grey,
-            onPressed: _isConnected
+            color: (_isConnected && _isWifiEnabled)
+                ? const Color.fromARGB(255, 15, 226, 226)
+                : Colors.grey,
+            onPressed: (_isConnected && _isWifiEnabled)
                 ? () => _sendMessage(_controller.text)
                 : null,
           ),
