@@ -18,6 +18,7 @@ class _ChatPageState extends State<ChatPage> {
   bool _isWifiEnabled = true; // Control del estado del WiFi
   final String apiKey = 'AIzaSyDNE1Elvhyh9gCtEtC-hgui1x7PGipsovs';
   final String apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+  bool _preserveChat = true; // Control para guardar o no la conversación
 
   @override
   void initState() {
@@ -34,7 +35,6 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
-  // Verificar conectividad y estado del WiFi
   Future<void> _checkConnectivity() async {
     final connectivityResult = await Connectivity().checkConnectivity();
     setState(() {
@@ -43,7 +43,6 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-  // Escuchar cambios en la conectividad
   void _listenToConnectivityChanges() {
     Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
       setState(() {
@@ -53,7 +52,6 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-  // Cargar historial de conversación desde SharedPreferences
   Future<void> _loadChatHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final savedMessages = prefs.getStringList('chat_history') ?? [];
@@ -65,14 +63,23 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
-  // Guardar historial de conversación en SharedPreferences
   Future<void> _saveChatHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final encodedMessages = _messages.map((msg) => jsonEncode(msg)).toList();
-    await prefs.setStringList('chat_history', encodedMessages);
+    if (_preserveChat) {
+      final prefs = await SharedPreferences.getInstance();
+      final encodedMessages = _messages.map((msg) => jsonEncode(msg)).toList();
+      await prefs.setStringList('chat_history', encodedMessages);
+    }
   }
 
-  // Llamada a la API de Gemini
+  Future<void> _clearChatHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _messages.clear();
+      _preserveChat = false; // No guardar más mensajes
+    });
+    await prefs.remove('chat_history');
+  }
+
   Future<String?> _callGeminiAPI(String query) async {
     final messagesForContext = _messages.map((msg) => msg['text']!).toList();
     try {
@@ -101,7 +108,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  // Enviar mensaje
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
@@ -130,7 +136,21 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Chatbot'),
+        title: Row(
+          children: [
+            const Text('Mi Chatbot'),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.qr_code),
+              onPressed: () async {
+                await _clearChatHistory();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Historial de conversación borrado.')),
+                );
+              },
+            ),
+          ],
+        ),
         backgroundColor: const Color.fromARGB(255, 23, 23, 173),
       ),
       body: Column(
@@ -151,22 +171,35 @@ class _ChatPageState extends State<ChatPage> {
           final message = _messages[index];
           final isUserMessage = message['sender'] == 'user';
 
-          return Align(
-            alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.symmetric(vertical: 5),
-              decoration: BoxDecoration(
-                color: isUserMessage ? const Color.fromARGB(255, 12, 206, 240) : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                message['text'] ?? '',
-                style: TextStyle(
-                  color: Colors.black87,
+          return Column(
+            crossAxisAlignment:
+                isUserMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.symmetric(vertical: 5),
+                decoration: BoxDecoration(
+                  color: isUserMessage
+                      ? const Color.fromARGB(255, 12, 206, 240)
+                      : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  message['text'] ?? '',
+                  style: const TextStyle(
+                    color: Colors.black87,
+                  ),
                 ),
               ),
-            ),
+              if (isUserMessage)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4.0),
+                  child: Text(
+                    'Enviado',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                ),
+            ],
           );
         },
       ),
